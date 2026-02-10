@@ -25,7 +25,8 @@ export function Laundry() {
         setSuccess(false);
 
         try {
-            const res = await axios.get(`http://localhost:8000/api/users/${dni}`);
+            // CORRECCIÓN: Usar ruta relativa para que funcione en Render
+            const res = await axios.get(`/api/users/${dni}`);
 
             if (res.data.contract_type !== 'Regular Otro sindicato') {
                 setError('Este usuario no está habilitado para este servicio.');
@@ -33,7 +34,6 @@ export function Laundry() {
             }
 
             setUser(res.data);
-            // Reset items
             setItems([
                 { name: 'Chaqueta', qty: 0 },
                 { name: 'Pantalon', qty: 0 },
@@ -61,7 +61,8 @@ export function Laundry() {
 
         setLoading(true);
         try {
-            await axios.post('http://localhost:8000/api/laundry', {
+            // CORRECCIÓN: Usar ruta relativa para el envío de datos
+            await axios.post('/api/laundry', {
                 dni: user.dni,
                 items: itemsToRegister
             });
@@ -91,7 +92,7 @@ export function Laundry() {
                     </div>
                     <Button type="submit" disabled={loading}>
                         <Search className="mr-2" size={18} />
-                        Buscar
+                        {loading ? 'Buscando...' : 'Buscar'}
                     </Button>
                 </form>
             </Card>
