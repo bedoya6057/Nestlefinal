@@ -24,14 +24,11 @@ export function LaundryReturn() {
         setSuccess(false);
 
         try {
-            const resUser = await axios.get(`http://localhost:8000/api/users/${dni}`);
-
-            // Note: Users can return clothes regardless of current contract type changes, 
-            // as long as they have items in the system.
-
+            // CORRECCIÓN: Rutas relativas para funcionar en Render
+            const resUser = await axios.get(`/api/users/${dni}`);
             setUser(resUser.data);
 
-            const resStatus = await axios.get(`http://localhost:8000/api/laundry/${dni}/status`);
+            const resStatus = await axios.get(`/api/laundry/${dni}/status`);
             setLaundryStatus(resStatus.data);
 
         } catch (err) {
@@ -64,15 +61,17 @@ export function LaundryReturn() {
 
         setLoading(true);
         try {
-            await axios.post('http://localhost:8000/api/laundry/return', {
+            // CORRECCIÓN: Ruta relativa para registrar la devolución
+            await axios.post('/api/laundry/return', {
                 dni: user.dni,
                 items: itemsToReturn
             });
             setSuccess(true);
-            // Refresh status to show updated pending counts
-            const resStatus = await axios.get(`http://localhost:8000/api/laundry/${dni}/status`);
+            
+            // CORRECCIÓN: Actualizar estado con ruta relativa
+            const resStatus = await axios.get(`/api/laundry/${dni}/status`);
             setLaundryStatus(resStatus.data);
-            setReturnItems({}); // Reset inputs
+            setReturnItems({}); 
         } catch (err) {
             setError('Error al registrar la devolución.');
         } finally {
@@ -96,7 +95,7 @@ export function LaundryReturn() {
                     </div>
                     <Button type="submit" disabled={loading}>
                         <Search className="mr-2" size={18} />
-                        Buscar
+                        {loading ? 'Buscando...' : 'Buscar'}
                     </Button>
                 </form>
             </Card>
