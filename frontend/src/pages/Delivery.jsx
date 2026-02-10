@@ -61,11 +61,11 @@ export function Delivery() {
         setUser(null);
         setDeliveryData(null);
         try {
-            const res = await axios.get(`http://localhost:8000/api/users/${dni}`);
+            // CORRECCIÓN: Ruta relativa para buscar usuario en Render
+            const res = await axios.get(`/api/users/${dni}`);
             setUser(res.data);
             setItems(determineDefaultItems(res.data.contract_type));
 
-            // Set default date to current time in local format for input
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             setDeliveryDate(now.toISOString().slice(0, 16));
@@ -78,8 +78,10 @@ export function Delivery() {
 
     const processDelivery = async () => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await axios.post('http://localhost:8000/api/deliveries', {
+            // CORRECCIÓN: Ruta relativa para procesar entrega en Render
+            const res = await axios.post('/api/deliveries', {
                 dni: user.dni,
                 items: items,
                 date: new Date(deliveryDate).toISOString()
@@ -112,7 +114,7 @@ export function Delivery() {
                     </div>
                     <Button type="submit" disabled={loading}>
                         <Search className="mr-2" size={18} />
-                        Buscar
+                        {loading ? 'Buscando...' : 'Buscar'}
                     </Button>
                 </form>
             </Card>
@@ -215,8 +217,9 @@ export function Delivery() {
                             ))}
                         </ul>
 
+                        {/* CORRECCIÓN: URL relativa para el PDF en Render */}
                         <a
-                            href={`http://localhost:8000${deliveryData.pdf_url}`}
+                            href={deliveryData.pdf_url}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center justify-center gap-2 w-full p-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
