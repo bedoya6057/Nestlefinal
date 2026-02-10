@@ -34,7 +34,8 @@ export function LaundryReport() {
             if (filters.month) params.month = filters.month;
             if (filters.year) params.year = filters.year;
 
-            const res = await axios.get('http://localhost:8000/api/laundry/report', { params });
+            // CORRECCIÓN: Se eliminó 'http://localhost:8000' para usar la ruta del servidor de Render
+            const res = await axios.get('/api/laundry/report', { params });
             setReportData(res.data);
         } catch (err) {
             console.error("Error fetching report:", err);
@@ -43,7 +44,7 @@ export function LaundryReport() {
 
     useEffect(() => {
         fetchReport();
-    }, []); // Initial load
+    }, []); // Carga inicial al abrir la página
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
