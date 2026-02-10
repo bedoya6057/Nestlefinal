@@ -18,11 +18,15 @@ export function Register() {
         e.preventDefault();
         setStatus('loading');
         try {
-            await axios.post('http://localhost:8000/api/users', formData);
+            // CORRECCIÓN: Eliminamos 'http://localhost:8000' para usar rutas relativas
+            // Esto permite que funcione tanto local como en Render automáticamente.
+            await axios.post('/api/users', formData);
+            
             setStatus('success');
             setFormData({ name: '', surname: '', dni: '', contract_type: 'Regular Otro sindicato' });
             setTimeout(() => setStatus('idle'), 3000);
         } catch (error) {
+            // Si el backend devuelve un error (como DNI duplicado), lo atrapamos aquí
             setStatus('error');
         }
     };
@@ -62,6 +66,7 @@ export function Register() {
                             required
                             placeholder="12345678"
                             maxLength={8}
+                            type="text"
                         />
                     </div>
 
@@ -93,7 +98,7 @@ export function Register() {
                     {status === 'error' && (
                         <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
                             <AlertCircle size={20} />
-                            <span>Error al registrar. Verifica el DNI.</span>
+                            <span>Error al registrar. Verifica el DNI o la conexión.</span>
                         </div>
                     )}
                 </form>
