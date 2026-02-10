@@ -107,7 +107,7 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     width, height = letter
     
     # --- LOGO EN MINÚSCULAS ---
-    # Ruta corregida para buscar el logo en la carpeta de assets
+    # Ruta corregida para buscar el logo en la carpeta de assets del código fuente
     logo_path = "frontend/src/assets/logo.png" 
     
     if os.path.exists(logo_path):
@@ -442,3 +442,4 @@ async def catch_all(full_path: str):
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return RedirectResponse(url="/docs")
+
