@@ -12,6 +12,10 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import clsx from 'clsx';
 import { AnimatePresence } from 'framer-motion';
 
+// --- IMPORTACIÓN DEL LOGO CORREGIDA ---
+// Al estar este archivo en src/ y el logo en src/assets/
+import logo from './assets/logo.png'; 
+
 function NavLink({ to, icon: Icon, children }) {
   const location = useLocation();
   const isActive = location.pathname === to;
@@ -39,8 +43,8 @@ function Sidebar() {
     <div className="w-64 bg-slate-900 border-r border-slate-800 h-screen flex flex-col fixed left-0 top-0 z-40">
       <div className="p-6 border-b border-slate-800 flex justify-center">
         <div className="bg-white/95 p-3 rounded-xl shadow-lg w-full flex justify-center items-center">
-          {/* Eliminada la barra inicial para evitar errores de ruta en el servidor */}
-          <img src="logo.png" alt="Sodexo Logo" className="h-16 w-auto object-contain" />
+          {/* USANDO LA VARIABLE IMPORTADA */}
+          <img src={logo} alt="Sodexo Logo" className="h-16 w-auto object-contain" />
         </div>
       </div>
 
@@ -101,15 +105,12 @@ export default function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Ruta pública de Login */}
           <Route path="/login" element={<Login />} />
 
-          {/* Rutas protegidas por autenticación */}
           <Route path="/*" element={
             <ProtectedRoute>
               <DashboardLayout>
                 <Routes>
-                  {/* El Dashboard es la página por defecto al entrar a la raíz */}
                   <Route index element={<Dashboard />} />
                   <Route path="register" element={<Register />} />
                   <Route path="delivery" element={<Delivery />} />
@@ -117,7 +118,6 @@ export default function App() {
                   <Route path="laundry-return" element={<LaundryReturn />} />
                   <Route path="reportes" element={<Reports />} />
                   
-                  {/* Redirección automática si la ruta no existe dentro del sistema */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </DashboardLayout>
