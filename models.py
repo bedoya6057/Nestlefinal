@@ -23,15 +23,25 @@ class Laundry(Base):
     __tablename__ = "laundry"
 
     id = Column(Integer, primary_key=True, index=True)
-    dni = Column(String, index=True)
+    guide_number = Column(String, unique=True, index=True)
     date = Column(DateTime)
     items_json = Column(Text)
+    status = Column(String, default="Pendiente") # "Pendiente", "Parcial", "Completado"
 
 class LaundryReturn(Base):
     __tablename__ = "laundry_returns"
 
     id = Column(Integer, primary_key=True, index=True)
-    dni = Column(String, index=True)
+    guide_number = Column(String, index=True)
     date = Column(DateTime)
     items_json = Column(Text)
+
+class UniformReturn(Base):
+    __tablename__ = "uniform_returns"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dni = Column(String, index=True)
+    items_json = Column(Text)
+    observations = Column(Text, nullable=True)
+    date = Column(DateTime)
 

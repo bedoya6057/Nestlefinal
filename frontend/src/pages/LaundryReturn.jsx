@@ -3,36 +3,31 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import axios from 'axios';
-import { Search, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Search, RotateCcw, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 
 export function LaundryReturn() {
-    const [dni, setDni] = useState('');
-    const [user, setUser] = useState(null);
+    const [guideNumber, setGuideNumber] = useState('');
+    const [laundryData, setLaundryData] = useState(null); // Data for valid guide
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
-    const [laundryStatus, setLaundryStatus] = useState([]);
     const [returnItems, setReturnItems] = useState({}); // { "Item Name": qty_to_return }
 
-    const searchUser = async (e) => {
+    const searchGuide = async (e) => {
         e.preventDefault();
+        if (!guideNumber.trim()) return;
+
         setLoading(true);
         setError(null);
-        setUser(null);
-        setLaundryStatus([]);
+        setLaundryData(null);
         setReturnItems({});
         setSuccess(false);
 
         try {
-            // CORRECCIÓN: Rutas relativas para funcionar en Render
-            const resUser = await axios.get(`/api/users/${dni}`);
-            setUser(resUser.data);
-
-            const resStatus = await axios.get(`/api/laundry/${dni}/status`);
-            setLaundryStatus(resStatus.data);
-
+            const res = await axios.get(`http://localhost:8000/api/laundry/${guideNumber.trim()}/status`);
+            setLaundryData(res.data);
         } catch (err) {
-            setError(err.response?.status === 404 ? 'Usuario no encontrado' : 'Error al buscar información');
+            setError(err.response?.status === 404 ? 'Guía no encontrada' : 'Error al buscar guía');
         } finally {
             setLoading(false);
         }
@@ -55,23 +50,22 @@ export function LaundryReturn() {
             .map(([name, qty]) => ({ name, qty }));
 
         if (itemsToReturn.length === 0) {
-            setError('Debe seleccionar al menos una prenda para devolver.');
+            setError('Debe ingresar cantidad a devolver en al menos una prenda.');
             return;
         }
 
         setLoading(true);
         try {
-            // CORRECCIÓN: Ruta relativa para registrar la devolución
-            await axios.post('/api/laundry/return', {
-                dni: user.dni,
+            await axios.post('http://localhost:8000/api/laundry/return', {
+                guide_number: guideNumber,
                 items: itemsToReturn
             });
             setSuccess(true);
-            
-            // CORRECCIÓN: Actualizar estado con ruta relativa
-            const resStatus = await axios.get(`/api/laundry/${dni}/status`);
-            setLaundryStatus(resStatus.data);
-            setReturnItems({}); 
+
+            // Refresh status
+            const res = await axios.get(`http://localhost:8000/api/laundry/${guideNumber}/status`);
+            setLaundryData(res.data);
+            setReturnItems({});
         } catch (err) {
             setError('Error al registrar la devolución.');
         } finally {
@@ -81,21 +75,24 @@ export function LaundryReturn() {
 
     return (
         <div className="max-w-3xl mx-auto space-y-6">
-            <h2 className="text-3xl font-bold text-slate-800">Entregar Lavado (Devolución)</h2>
+            <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
+                <RotateCcw className="text-green-600" />
+                Recepción de Lavandería
+            </h2>
 
             <Card className="p-6">
-                <form onSubmit={searchUser} className="flex gap-4">
+                <form onSubmit={searchGuide} className="flex gap-4">
                     <div className="flex-1">
                         <Input
-                            placeholder="Buscar por DNI..."
-                            value={dni}
-                            onChange={e => setDni(e.target.value)}
-                            className="w-full"
+                            placeholder="Ingrese N° Guía de Remisión"
+                            value={guideNumber}
+                            onChange={e => setGuideNumber(e.target.value)}
+                            className="w-full uppercase"
                         />
                     </div>
                     <Button type="submit" disabled={loading}>
                         <Search className="mr-2" size={18} />
-                        {loading ? 'Buscando...' : 'Buscar'}
+                        {loading ? 'Buscando...' : 'Buscar Guía'}
                     </Button>
                 </form>
             </Card>
@@ -110,69 +107,64 @@ export function LaundryReturn() {
             {success && (
                 <div className="flex items-center gap-2 text-green-600 bg-green-50 p-4 rounded-xl">
                     <CheckCircle size={24} />
-                    <span className="font-medium text-lg">Devolución registrada exitosamente</span>
+                    <span className="font-medium text-lg">Recepción registrada exitosamente</span>
                 </div>
             )}
 
-            {user && (
+            {laundryData && (
                 <Card className="p-8">
-                    <div className="flex items-start justify-between mb-8">
+                    <div className="flex items-start justify-between mb-6 border-b border-slate-100 pb-4">
                         <div>
-                            <h3 className="text-xl font-bold text-slate-900">{user.name} {user.surname}</h3>
-                            <p className="text-slate-500 mt-1">DNI: {user.dni}</p>
+                            <h3 className="text-xl font-bold text-slate-900">Guía N° {guideNumber}</h3>
+                            <p className="text-slate-500">Gestione el retorno de prendas para esta guía.</p>
                         </div>
-                        <div className="h-12 w-12 bg-green-50 rounded-full flex items-center justify-center text-green-500">
-                            <RotateCcw size={24} />
+                        <div className={`px-4 py-1 rounded-full text-sm font-bold ${laundryData.every(i => i.pending === 0)
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-orange-100 text-orange-700'
+                            }`}>
+                            {laundryData.every(i => i.pending === 0) ? 'COMPLETADO' : 'PENDIENTE'}
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <h4 className="font-medium text-slate-700">Prendas en Proceso (Pendientes de Devolución):</h4>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-12 text-sm text-slate-500 font-medium px-4 mb-2">
+                            <div className="col-span-4">Prenda</div>
+                            <div className="col-span-2 text-center">Enviado</div>
+                            <div className="col-span-2 text-center">Ya Retornado</div>
+                            <div className="col-span-2 text-center text-orange-600">Pendiente</div>
+                            <div className="col-span-2 text-center">Ingresar</div>
+                        </div>
 
-                        {laundryStatus.length === 0 ? (
-                            <p className="text-slate-500 italic text-center py-4">Este usuario no tiene prendas pendientes en lavandería.</p>
-                        ) : (
-                            <div className="space-y-4">
-                                {laundryStatus.map((item, index) => (
-                                    <div key={index} className={`flex items-center justify-between p-4 rounded-lg border ${item.pending > 0 ? 'bg-white border-slate-200' : 'bg-slate-50 border-transparent'}`}>
-                                        <div>
-                                            <span className="font-medium text-slate-800 block">{item.name}</span>
-                                            <div className="text-xs text-slate-500 mt-1 space-x-3">
-                                                <span>Enviadas: {item.sent}</span>
-                                                <span>Devueltas: {item.returned}</span>
-                                                <span className={item.pending > 0 ? "text-orange-600 font-bold" : "text-green-600 font-bold"}>
-                                                    Pendientes: {item.pending}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {item.pending > 0 && (
-                                            <div className="flex items-center gap-3">
-                                                <label className="text-sm text-slate-500">Devolver:</label>
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    max={item.pending}
-                                                    value={returnItems[item.name] || ''}
-                                                    onChange={e => handleReturnQtyChange(item.name, e.target.value, item.pending)}
-                                                    placeholder="0"
-                                                    className="w-24 text-center"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                        {laundryData.map((item, index) => (
+                            <div key={index} className={`grid grid-cols-12 items-center p-4 rounded-lg border ${item.pending > 0 ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50 border-transparent opacity-75'}`}>
+                                <div className="col-span-4 font-medium text-slate-800">{item.name}</div>
+                                <div className="col-span-2 text-center text-slate-600">{item.sent}</div>
+                                <div className="col-span-2 text-center text-slate-600">{item.returned}</div>
+                                <div className="col-span-2 text-center font-bold text-orange-600">{item.pending}</div>
+                                <div className="col-span-2">
+                                    {item.pending > 0 && (
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max={item.pending}
+                                            value={returnItems[item.name] || ''}
+                                            onChange={e => handleReturnQtyChange(item.name, e.target.value, item.pending)}
+                                            placeholder="0"
+                                            className="text-center h-9"
+                                        />
+                                    )}
+                                </div>
                             </div>
-                        )}
-
-                        {laundryStatus.some(i => i.pending > 0) && (
-                            <div className="pt-6 border-t border-slate-100">
-                                <Button onClick={handleSubmit} disabled={loading} className="w-full text-lg h-12 bg-green-600 hover:bg-green-700">
-                                    {loading ? 'Procesando...' : 'Registrar Devolución'}
-                                </Button>
-                            </div>
-                        )}
+                        ))}
                     </div>
+
+                    {laundryData.some(i => i.pending > 0) && (
+                        <div className="mt-8 pt-6 border-t border-slate-100">
+                            <Button onClick={handleSubmit} disabled={loading} className="w-full text-lg h-12 bg-green-600 hover:bg-green-700">
+                                {loading ? 'Procesando...' : 'Confirmar Recepción'}
+                            </Button>
+                        </div>
+                    )}
                 </Card>
             )}
         </div>

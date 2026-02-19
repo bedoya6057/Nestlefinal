@@ -1,59 +1,50 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Card } from '../components/ui/Card';
-import { Search, FileText, Calendar, Filter, Package, Shirt } from 'lucide-react';
+import { Search, FileText, Filter, Package, Shirt, Truck } from 'lucide-react';
 
 export function Reports() {
-    const [activeTab, setActiveTab] = useState('laundry'); // 'laundry' or 'delivery'
+    const [activeTab, setActiveTab] = useState('deliveries'); // deliveries, laundry, uniform-return
     const [reportData, setReportData] = useState([]);
-    const [filters, setFilters] = useState({
-        dni: '',
-        month: '',
-        year: ''
-    });
-
-    const years = [2024, 2025, 2026, 2027];
-    const months = [
-        { value: 1, label: 'Enero' },
-        { value: 2, label: 'Febrero' },
-        { value: 3, label: 'Marzo' },
-        { value: 4, label: 'Abril' },
-        { value: 5, label: 'Mayo' },
-        { value: 6, label: 'Junio' },
-        { value: 7, label: 'Julio' },
-        { value: 8, label: 'Agosto' },
-        { value: 9, label: 'Septiembre' },
-        { value: 10, label: 'Octubre' },
-        { value: 11, label: 'Noviembre' },
-        { value: 12, label: 'Diciembre' }
-    ];
-
-    const fetchReport = async () => {
-        try {
-            setReportData([]); // Limpiar datos previos
-            const params = {};
-            if (filters.dni) params.dni = filters.dni;
-            if (filters.month) params.month = filters.month;
-            if (filters.year) params.year = filters.year;
-
-            // CORRECCIÓN: Rutas relativas para que Render encuentre los endpoints
-            const endpoint = activeTab === 'laundry'
-                ? '/api/laundry/report'
-                : '/api/delivery/report';
-
-            const res = await axios.get(endpoint, { params });
-            setReportData(res.data);
-        } catch (err) {
-            console.error("Error fetching report:", err);
-        }
-    };
+    const [guideFilter, setGuideFilter] = useState('');
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
+    const [year, setYear] = useState(new Date().getFullYear());
 
     useEffect(() => {
         fetchReport();
-    }, [activeTab]); // Se dispara al cambiar de pestaña o carga inicial
+    }, [activeTab, month, year]);
 
-    const handleFilterChange = (e) => {
-        setFilters({ ...filters, [e.target.name]: e.target.value });
+    const fetchReport = async () => {
+        try {
+            let url = '';
+            let params = {};
+
+            if (activeTab === 'deliveries') {
+                url = 'http://localhost:8000/api/reports/deliveries';
+                params = { month, year };
+            } else if (activeTab === 'laundry') {
+                url = 'http://localhost:8000/api/reports/laundry';
+                // If we want to filter by guide, we pass it. If empty, maybe get all?
+                // The backend for laundry report might support guide_number
+                if (guideFilter.trim()) {
+                    params = { guide_number: guideFilter.trim() };
+                }
+            } else if (activeTab === 'uniform-return') {
+                url = 'http://localhost:8000/api/uniform-returns/report';
+            }
+
+            if (url) {
+                const res = await axios.get(url, { params });
+                setReportData(res.data);
+            }
+        } catch (err) {
+            console.error(err);
+            setReportData([]);
+        }
+    };
+
+    const handleSearch = () => {
+        fetchReport();
     };
 
     return (
@@ -64,149 +55,173 @@ export function Reports() {
             </h2>
 
             {/* Tabs */}
-            <div className="flex space-x-4 border-b border-slate-200">
+            <div className="flex gap-4 border-b border-slate-200">
                 <button
-                    onClick={() => setActiveTab('laundry')}
-                    className={`flex items-center gap-2 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'laundry'
-                            ? 'border-blue-600 text-blue-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
-                        }`}
-                >
-                    <Shirt size={18} />
-                    Reporte Lavandería
-                </button>
-                <button
-                    onClick={() => setActiveTab('delivery')}
-                    className={`flex items-center gap-2 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'delivery'
-                            ? 'border-blue-600 text-blue-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                    onClick={() => setActiveTab('deliveries')}
+                    className={`pb-4 px-2 font-medium transition-colors relative flex items-center gap-2 ${activeTab === 'deliveries'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     <Package size={18} />
-                    Reporte Entregas Uniforme
+                    Entregas de Uniformidad
+                </button>
+                <button
+                    onClick={() => setActiveTab('laundry')}
+                    className={`pb-4 px-2 font-medium transition-colors relative flex items-center gap-2 ${activeTab === 'laundry'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                >
+                    <Truck size={18} />
+                    Lavandería
+                </button>
+                <button
+                    onClick={() => setActiveTab('uniform-return')}
+                    className={`pb-4 px-2 font-medium transition-colors relative flex items-center gap-2 ${activeTab === 'uniform-return'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                >
+                    <Shirt size={18} />
+                    Devolución Uniformes
                 </button>
             </div>
 
-            <Card className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">DNI Usuario</label>
+            {/* Filters */}
+            <Card className="p-4 flex flex-wrap gap-4 items-center bg-white shadow-sm rounded-lg border border-slate-100">
+                <div className="flex gap-2 items-center text-slate-600">
+                    <Filter size={20} />
+                    <span className="font-medium">Filtros:</span>
+                </div>
+
+                {activeTab === 'deliveries' && (
+                    <>
+                        <select
+                            value={month}
+                            onChange={(e) => setMonth(e.target.value)}
+                            className="px-4 py-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        >
+                            {Array.from({ length: 12 }, (_, i) => (
+                                <option key={i + 1} value={i + 1}>
+                                    {new Date(0, i).toLocaleString('es-ES', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            value={year}
+                            onChange={(e) => setYear(e.target.value)}
+                            className="px-4 py-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        >
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                    </>
+                )}
+
+                {activeTab === 'laundry' && (
+                    <div className="flex gap-2">
                         <div className="relative">
                             <input
                                 type="text"
-                                name="dni"
-                                value={filters.dni}
-                                onChange={handleFilterChange}
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                                placeholder="Buscar por DNI..."
+                                placeholder="Buscar por N° Guía"
+                                value={guideFilter}
+                                onChange={(e) => setGuideFilter(e.target.value)}
+                                className="pl-10 px-4 py-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500 w-64 text-sm"
                             />
-                            <Search className="absolute left-3 top-2.5 text-slate-400" size={20} />
+                            <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
                         </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Mes</label>
-                        <select
-                            name="month"
-                            value={filters.month}
-                            onChange={handleFilterChange}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        <button
+                            onClick={handleSearch}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
                         >
-                            <option value="">Todos</option>
-                            {months.map(m => (
-                                <option key={m.value} value={m.value}>{m.label}</option>
-                            ))}
-                        </select>
+                            Buscar
+                        </button>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Año</label>
-                        <select
-                            name="year"
-                            value={filters.year}
-                            onChange={handleFilterChange}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Todos</option>
-                            {years.map(y => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <button
-                        onClick={fetchReport}
-                        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <Filter size={20} />
-                        Filtrar
-                    </button>
-                </div>
+                )}
             </Card>
 
-            <Card className="overflow-hidden">
+            {/* Table */}
+            <Card className="overflow-hidden border border-slate-200 shadow-sm">
                 <div className="overflow-x-auto">
-                    {activeTab === 'laundry' ? (
+                    {activeTab === 'deliveries' && (
                         <table className="w-full text-left text-sm text-slate-600">
-                            <thead className="text-xs uppercase bg-slate-100 text-slate-700">
+                            <thead className="text-xs uppercase bg-slate-50 text-slate-700 font-semibold">
                                 <tr>
                                     <th className="px-6 py-4">Usuario</th>
                                     <th className="px-6 py-4">DNI</th>
-                                    <th className="px-6 py-4">Prendas</th>
-                                    <th className="px-6 py-4">Fecha Solicitud</th>
-                                    <th className="px-6 py-4">Fecha Entrega</th>
-                                    <th className="px-6 py-4">Estado</th>
+                                    <th className="px-6 py-4">Fecha</th>
+                                    <th className="px-6 py-4">Items Entregados</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {reportData.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
-                                            No se encontraron registros.
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan="4" className="px-6 py-8 text-center text-slate-500">No se encontraron registros.</td></tr>
                                 ) : (
                                     reportData.map((row) => (
                                         <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-4 font-medium text-slate-900">{row.user}</td>
                                             <td className="px-6 py-4">{row.dni}</td>
+                                            <td className="px-6 py-4">{new Date(row.date).toLocaleDateString()}</td>
                                             <td className="px-6 py-4">{row.items}</td>
-                                            <td className="px-6 py-4">
-                                                {new Date(row.request_date).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {row.return_date === '-' || row.return_date.startsWith('Parcial')
-                                                    ? row.return_date
-                                                    : new Date(row.return_date).toLocaleDateString()
-                                                }
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${row.status === 'Entregado'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : row.status === 'Parcial'
-                                                            ? 'bg-orange-100 text-orange-700'
-                                                            : 'bg-red-100 text-red-700'
-                                                    }`}>
-                                                    {row.status}
-                                                </span>
-                                            </td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
-                    ) : (
+                    )}
+
+                    {activeTab === 'laundry' && (
                         <table className="w-full text-left text-sm text-slate-600">
-                            <thead className="text-xs uppercase bg-slate-100 text-slate-700">
+                            <thead className="text-xs uppercase bg-slate-50 text-slate-700 font-semibold">
+                                <tr>
+                                    <th className="px-6 py-4">N° Guía</th>
+                                    <th className="px-6 py-4">Fecha Envío</th>
+                                    <th className="px-6 py-4">Items</th>
+                                    <th className="px-6 py-4">Pendientes</th>
+                                    <th className="px-6 py-4">Estado</th>
+                                    <th className="px-6 py-4">Fecha Retorno</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {reportData.length === 0 ? (
+                                    <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-500">Ingrese un N° de Guía para buscar (o deje vacío para ver todos).</td></tr>
+                                ) : (
+                                    reportData.map((row) => (
+                                        <tr key={row.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4 font-medium text-slate-900">{row.guide_number}</td>
+                                            <td className="px-6 py-4">{new Date(row.date).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4">{row.items}</td>
+                                            <td className="px-6 py-4 text-orange-600 font-medium">{row.pending_items}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${row.status === 'Completa' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                    }`}>
+                                                    {row.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">{row.return_date ? new Date(row.return_date).toLocaleDateString() : '-'}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    )}
+
+                    {activeTab === 'uniform-return' && (
+                        <table className="w-full text-left text-sm text-slate-600">
+                            <thead className="text-xs uppercase bg-slate-50 text-slate-700 font-semibold">
                                 <tr>
                                     <th className="px-6 py-4">Usuario</th>
                                     <th className="px-6 py-4">DNI</th>
-                                    <th className="px-6 py-4">Contratación</th>
-                                    <th className="px-6 py-4">Prendas Entregadas</th>
-                                    <th className="px-6 py-4">Fecha Entrega</th>
+                                    <th className="px-6 py-4">Fecha Devolución</th>
+                                    <th className="px-6 py-4">Items Devueltos</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {reportData.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="px-6 py-8 text-center text-slate-500">
+                                        <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
                                             No se encontraron registros.
                                         </td>
                                     </tr>
@@ -216,14 +231,9 @@ export function Reports() {
                                             <td className="px-6 py-4 font-medium text-slate-900">{row.user}</td>
                                             <td className="px-6 py-4">{row.dni}</td>
                                             <td className="px-6 py-4">
-                                                <span className="px-2 py-1 bg-slate-100 rounded-lg text-xs font-semibold text-slate-700">
-                                                    {row.contract_type}
-                                                </span>
+                                                {new Date(row.date).toLocaleDateString()} {new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </td>
                                             <td className="px-6 py-4 font-medium text-slate-800">{row.items}</td>
-                                            <td className="px-6 py-4">
-                                                {new Date(row.date).toLocaleDateString()}
-                                            </td>
                                         </tr>
                                     ))
                                 )}
