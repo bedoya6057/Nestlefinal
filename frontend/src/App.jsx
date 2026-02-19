@@ -4,7 +4,8 @@ import { Dashboard } from './pages/Dashboard';
 import { Register } from './pages/Register';
 import { Delivery } from './pages/Delivery';
 import { Laundry } from './pages/Laundry';
-import { LaundryReturn } from './pages/LaundryReturn';
+import { UniformReturn } from './pages/UniformReturn';
+
 import { Reports } from './pages/Reports';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -47,8 +48,9 @@ function Sidebar() {
         <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
         <NavLink to="/register" icon={UserPlus}>Registrar Usuario</NavLink>
         <NavLink to="/delivery" icon={Package}>Entregar Uniformes</NavLink>
+        <NavLink to="/uniform-return" icon={Package}>Devolución Uniformes</NavLink>
         <NavLink to="/laundry" icon={Shirt}>Lavandería (Envío)</NavLink>
-        <NavLink to="/laundry-return" icon={RefreshCw}>Entregar Lavado</NavLink>
+
         <NavLink to="/reportes" icon={FileText}>Reportes</NavLink>
       </nav>
 
@@ -86,9 +88,7 @@ function DashboardLayout({ children }) {
           </h1>
         </header>
         <main className="flex-1 p-8 overflow-auto">
-          <AnimatePresence mode='wait'>
-            {children}
-          </AnimatePresence>
+          {children}
         </main>
       </div>
     </div>
@@ -109,8 +109,9 @@ export default function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/delivery" element={<Delivery />} />
+                  <Route path="/uniform-return" element={<UniformReturn />} />
                   <Route path="/laundry" element={<Laundry />} />
-                  <Route path="/laundry-return" element={<LaundryReturn />} />
+
                   <Route path="/reportes" element={<Reports />} />
                 </Routes>
               </DashboardLayout>
