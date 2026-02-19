@@ -22,167 +22,146 @@ export function Dashboard() {
     const [year, setYear] = useState(currentYear);
 
     useEffect(() => {
-        const fetchStats = async () => {
+        const fetchDashboardData = async () => {
             try {
-                // CORRECCIÓN: Uso de ruta relativa con parámetros de filtro
+                // Obtener Estadísticas filtradas
                 const resStats = await axios.get('/api/stats', {
-                    params: { month, year }
+                    params: { 
+                        month: month === "" ? null : month, 
+                        year: year === "" ? null : year 
+                    }
                 });
                 setStats(resStats.data);
 
-                // CORRECCIÓN: Ruta relativa para movimientos de lavandería
+                // Obtener últimos movimientos (Lista detallada con pendientes)
                 const resLaundry = await axios.get('/api/laundry');
                 setLaundryServices(resLaundry.data);
             } catch (err) {
-                console.error("Error fetching data:", err);
+                console.error("Error al cargar datos del dashboard:", err);
             }
         };
 
-        fetchStats();
+        fetchDashboardData();
     }, [month, year]);
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h2 className="text-3xl font-bold text-slate-800">Dashboard</h2>
+                <h2 className="text-3xl font-bold text-slate-800">Dashboard de Gestión</h2>
 
                 <div className="flex gap-2">
                     <select
                         value={month}
-                        onChange={(e) => setMonth(parseInt(e.target.value) || "")}
-                        className="px-4 py-2 border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        onChange={(e) => setMonth(e.target.value === "" ? "" : parseInt(e.target.value))}
+                        className="px-4 py-2 border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                     >
                         <option value="">Todos los Meses</option>
                         {Array.from({ length: 12 }, (_, i) => (
                             <option key={i + 1} value={i + 1}>
-                                {new Date(0, i).toLocaleString('es-ES', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
+                                {new Date(0, i).toLocaleString('es-ES', { month: 'long' }).toUpperCase()}
                             </option>
                         ))}
                     </select>
 
                     <select
                         value={year}
-                        onChange={(e) => setYear(parseInt(e.target.value) || "")}
-                        className="px-4 py-2 border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        onChange={(e) => setYear(e.target.value === "" ? "" : parseInt(e.target.value))}
+                        className="px-4 py-2 border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                     >
                         <option value="">Todos los Años</option>
-                        {Array.from({ length: 5 }, (_, i) => (
-                            <option key={currentYear - i} value={currentYear - i}>
-                                {currentYear - i}
-                            </option>
-                        ))}
+                        <option value={currentYear}>{currentYear}</option>
+                        <option value={currentYear - 1}>{currentYear - 1}</option>
                     </select>
                 </div>
             </div>
 
-            {/* Grid de Tarjetas de Estadísticas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="p-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
-                            <TrendingUp size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500 font-medium">Total de Lavados</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{stats.laundry_total_count}</h3>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-purple-100 text-purple-600 rounded-lg">
-                            <RefreshCw size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500 font-medium">Servicios en Curso</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{stats.laundry_active_count}</h3>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-6 opacity-0 hidden md:block">
-                    {/* Espaciador para alinear el grid */}
-                </Card>
-
-                <Card className="p-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
-                            <Shirt size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500 font-medium">Polos Enviados</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{stats.laundry_polos_count || 0}</h3>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-slate-100 text-slate-600 rounded-lg">
-                            <Columns size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500 font-medium">Pantalones Enviados</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{stats.laundry_pantalones_count || 0}</h3>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
-                            <Briefcase size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500 font-medium">Chaquetas Enviadas</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{stats.laundry_chaquetas_count || 0}</h3>
-                        </div>
-                    </div>
-                </Card>
+            {/* Tarjetas Principales */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard 
+                    icon={<TrendingUp />} 
+                    label="Total Lavandería" 
+                    value={stats.laundry_total_count} 
+                    color="bg-indigo-100 text-indigo-600" 
+                />
+                <StatCard 
+                    icon={<RefreshCw />} 
+                    label="Guías Activas" 
+                    value={stats.laundry_active_count} 
+                    color="bg-purple-100 text-purple-600" 
+                />
+                <StatCard 
+                    icon={<Users />} 
+                    label="Total Trabajadores" 
+                    value={stats.users_count} 
+                    color="bg-blue-100 text-blue-600" 
+                />
+                <StatCard 
+                    icon={<Package />} 
+                    label="Total Entregas" 
+                    value={stats.deliveries_count} 
+                    color="bg-emerald-100 text-emerald-600" 
+                />
             </div>
 
-            {/* Tabla de Movimientos */}
+            {/* Inventario en Lavandería */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatCard 
+                    icon={<Shirt />} 
+                    label="Polos en Lavado" 
+                    value={stats.laundry_polos_count} 
+                    color="bg-blue-50 text-blue-500" 
+                />
+                <StatCard 
+                    icon={<Columns />} 
+                    label="Pantalones en Lavado" 
+                    value={stats.laundry_pantalones_count} 
+                    color="bg-slate-50 text-slate-500" 
+                />
+                <StatCard 
+                    icon={<Briefcase />} 
+                    label="Chaquetas en Lavado" 
+                    value={stats.laundry_chaquetas_count} 
+                    color="bg-emerald-50 text-emerald-500" 
+                />
+            </div>
+
+            {/* Tabla de Movimientos Críticos */}
             <Card className="p-6">
-                <h3 className="text-xl font-bold text-slate-800 mb-4">Últimos Movimientos de Lavandería</h3>
+                <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    Últimos Movimientos
+                </h3>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-600">
-                        <thead className="text-xs uppercase bg-slate-100 text-slate-700">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold">
                             <tr>
-                                <th className="px-4 py-3 rounded-l-lg">N° Guía</th>
+                                <th className="px-4 py-3">Guía</th>
                                 <th className="px-4 py-3">Fecha</th>
-                                <th className="px-4 py-3">Prendas</th>
-                                <th className="px-4 py-3">Pendientes</th>
-                                <th className="px-4 py-3 rounded-r-lg">Estado</th>
+                                <th className="px-4 py-3">Resumen</th>
+                                <th className="px-4 py-3">Pendiente Real</th>
+                                <th className="px-4 py-3">Estado</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100">
                             {laundryServices.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-4 py-6 text-center text-slate-400">
-                                        No hay movimientos recientes.
+                                    <td colSpan="5" className="px-4 py-10 text-center text-slate-400">
+                                        No hay registros de lavandería disponibles.
                                     </td>
                                 </tr>
                             ) : (
                                 laundryServices.map((service, index) => (
-                                    <tr key={index} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3 font-medium text-slate-900">
-                                            {service.guide_number}
-                                        </td>
-                                        <td className="px-4 py-3">
+                                    <tr key={index} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-4 py-3 font-bold text-slate-900">{service.guide_number}</td>
+                                        <td className="px-4 py-3 text-slate-500">
                                             {new Date(service.date).toLocaleDateString()}
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {service.items_count}
-                                        </td>
-                                        <td className="px-4 py-3 text-orange-600 font-medium">
+                                        <td className="px-4 py-3 text-xs">{service.items_count}</td>
+                                        <td className="px-4 py-3 text-orange-600 font-bold">
                                             {service.pending_items}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                                service.status === 'Completado' || service.status === 'Completa' ? 'bg-green-100 text-green-700' :
-                                                service.status === 'Parcial' || service.status === 'Incompleta' ? 'bg-orange-100 text-orange-700' :
-                                                'bg-blue-100 text-blue-700'
+                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
+                                                service.status === 'Completa' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                                             }`}>
                                                 {service.status}
                                             </span>
@@ -195,5 +174,22 @@ export function Dashboard() {
                 </div>
             </Card>
         </div>
+    );
+}
+
+// Sub-componente para las tarjetas
+function StatCard({ icon, label, value, color }) {
+    return (
+        <Card className="p-5 border-none shadow-sm bg-white">
+            <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${color}`}>
+                    {icon}
+                </div>
+                <div>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{label}</p>
+                    <h3 className="text-2xl font-black text-slate-900">{value || 0}</h3>
+                </div>
+            </div>
+        </Card>
     );
 }
