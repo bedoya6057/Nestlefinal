@@ -69,7 +69,6 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     c = canvas.Canvas(filepath, pagesize=letter)
     width, height = letter
     
-    # Intento de cargar logo
     logo_path = os.path.join("frontend", "src", "assets", "logo.png")
     if os.path.exists(logo_path):
         try:
@@ -82,14 +81,12 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     c.setFont("Helvetica-Bold", 16)
     c.drawCentredString(width / 2, height - 120, "ACTA DE ENTREGA DE UNIFORMES Y EPP")
     
-    # Datos del trabajador
     y = height - 170
     c.setFont("Helvetica", 11)
     c.drawString(50, y, f"Trabajador: {user.name} {user.surname}")
     c.drawString(50, y - 15, f"DNI: {user.dni}")
     c.drawString(50, y - 30, f"Fecha: {datetime.now().strftime('%d/%m/%Y')}")
 
-    # Tabla de items
     data = [["Descripción", "Cantidad"]]
     for item in items:
         data.append([item['name'], str(item['qty'])])
@@ -103,7 +100,6 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     
     w, h = table.wrap(width, height)
     table.drawOn(c, 50, y - 100 - h)
-    
     c.save()
     return filepath
 
@@ -112,23 +108,15 @@ def create_delivery(delivery: schemas.DeliveryCreate, db: Session = Depends(get_
     user = db.query(models.User).filter(models.User.dni == delivery.dni).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
     items_list = [item.dict() for item in delivery.items]
     try:
-        new_delivery = models.Delivery(
-            dni=delivery.dni,
-            date=datetime.now(),
-            items_json=json.dumps(items_list),
-            pdf_path=""
-        )
+        new_delivery = models.Delivery(dni=delivery.dni, date=datetime.now(), items_json=json.dumps(items_list), pdf_path="")
         db.add(new_delivery)
         db.commit()
         db.refresh(new_delivery)
-        
         pdf_path = generate_pdf(new_delivery.id, user, items_list, datetime.now())
         new_delivery.pdf_path = pdf_path
         db.commit()
-        
         return {"message": "Creado", "delivery_id": new_delivery.id, "pdf_url": f"/api/deliveries/{new_delivery.id}/pdf"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -140,56 +128,7 @@ def get_pdf(delivery_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="PDF no encontrado")
     return FileResponse(delivery.pdf_path, media_type="application/pdf")
 
-# --- REPORTE DE ENTREGAS ---
-
-@app.get("/api/delivery/report")
-def get_delivery_report(month: int = None, year: int = None, db: Session = Depends(get_db)):
-    query = db.query(models.Delivery)
-    if year: query = query.filter(extract('year', models.Delivery.date) == year)
-    if month: query = query.filter(extract('month', models.Delivery.date) == month)
-        
-    records = query.order_by(models.Delivery.date.desc()).all()
-    report_data = []
-    for rec in records:
-        user = db.query(models.User).filter(models.User.dni == rec.dni).first()
-        items_str = ", ".join([f"{i['qty']} {i['name']}" for i in json.loads(rec.items_json)])
-        report_data.append({
-            "id": rec.id, "user": f"{user.name} {user.surname}" if user else "N/A", 
-            "dni": rec.dni, "items": items_str, "date": rec.date
-        })
-    return report_data
-
-# --- DEVOLUCIÓN DE UNIFORMES (BAJAS) ---
-
-@app.post("/api/uniform-returns", response_model=schemas.UniformReturnResponse)
-def create_uniform_return(ret: schemas.UniformReturnCreate, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.dni == ret.dni).first()
-    if not user: raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    new_ur = models.UniformReturn(
-        dni=ret.dni, 
-        items_json=json.dumps([i.dict() for i in ret.items]), 
-        observations=ret.observations, 
-        date=datetime.now()
-    )
-    db.add(new_ur)
-    db.commit()
-    db.refresh(new_ur)
-    return new_ur
-
-@app.get("/api/uniform-returns/report")
-def get_uniform_return_report(db: Session = Depends(get_db)):
-    returns = db.query(models.UniformReturn).order_by(models.UniformReturn.date.desc()).all()
-    res = []
-    for r in returns:
-        user = db.query(models.User).filter(models.User.dni == r.dni).first()
-        items = json.loads(r.items_json)
-        res.append({
-            "id": r.id, "dni": r.dni, "user": f"{user.name} {user.surname}" if user else "N/A",
-            "date": r.date, "items": ", ".join([f"{i['qty']} {i['name']}" for i in items])
-        })
-    return res
-
-# --- LAVANDERÍA ---
+# --- LAVANDERÍA (CORREGIDO) ---
 
 @app.post("/api/laundry", response_model=schemas.Laundry)
 def create_laundry(laundry_data: schemas.LaundryCreate, db: Session = Depends(get_db)):
@@ -204,23 +143,68 @@ def create_laundry(laundry_data: schemas.LaundryCreate, db: Session = Depends(ge
     db.refresh(new_laundry)
     return new_laundry
 
+# ENDPOINT CRÍTICO PARA LA BÚSQUEDA DE RETORNO
+@app.get("/api/laundry/{guide_number}/status")
+def get_laundry_status(guide_number: str, db: Session = Depends(get_db)):
+    laundry = db.query(models.Laundry).filter(models.Laundry.guide_number == guide_number).first()
+    if not laundry:
+        raise HTTPException(status_code=404, detail="Guía no encontrada")
+    
+    # Obtener retornos previos para calcular pendientes
+    laundry_returns = db.query(models.LaundryReturn).filter(models.LaundryReturn.guide_number == guide_number).all()
+    
+    sent_items = {item['name']: item['qty'] for item in json.loads(laundry.items_json)}
+    returned_items = {}
+    for ret in laundry_returns:
+        for item in json.loads(ret.items_json):
+            returned_items[item['name']] = returned_items.get(item['name'], 0) + item['qty']
+            
+    return [{"name": n, "sent": q, "returned": returned_items.get(n, 0), "pending": q - returned_items.get(n, 0)} for n, q in sent_items.items()]
+
+@app.post("/api/laundry/return", response_model=schemas.LaundryReturn)
+def create_laundry_return(return_data: schemas.LaundryReturnCreate, db: Session = Depends(get_db)):
+    laundry = db.query(models.Laundry).filter(models.Laundry.guide_number == return_data.guide_number).first()
+    if not laundry:
+        raise HTTPException(status_code=404, detail="Guía no encontrada")
+    
+    new_return = models.LaundryReturn(
+        guide_number=return_data.guide_number, 
+        date=datetime.now(), 
+        items_json=json.dumps([item.dict() for item in return_data.items])
+    )
+    db.add(new_return)
+    db.commit()
+    
+    # Actualizar estado de la guía automáticamente
+    status_list = get_laundry_status(return_data.guide_number, db)
+    total_pending = sum(i['pending'] for i in status_list)
+    laundry.status = "Completa" if total_pending <= 0 else "Incompleta"
+    db.commit()
+    return new_return
+
+# --- REPORTES Y ESTADÍSTICAS ---
+
+@app.get("/api/delivery/report")
+def get_delivery_report(month: int = None, year: int = None, db: Session = Depends(get_db)):
+    query = db.query(models.Delivery)
+    if year: query = query.filter(extract('year', models.Delivery.date) == year)
+    if month: query = query.filter(extract('month', models.Delivery.date) == month)
+    records = query.order_by(models.Delivery.date.desc()).all()
+    res = []
+    for rec in records:
+        user = db.query(models.User).filter(models.User.dni == rec.dni).first()
+        res.append({
+            "id": rec.id, "user": f"{user.name} {user.surname}" if user else "N/A", 
+            "dni": rec.dni, "items": ", ".join([f"{i['qty']} {i['name']}" for i in json.loads(rec.items_json)]), "date": rec.date
+        })
+    return res
+
 @app.get("/api/reports/laundry")
 def get_laundry_report(guide_number: str = None, db: Session = Depends(get_db)):
     query = db.query(models.Laundry)
-    if guide_number:
-        query = query.filter(models.Laundry.guide_number.contains(guide_number))
+    if guide_number: query = query.filter(models.Laundry.guide_number.contains(guide_number))
     services = query.order_by(models.Laundry.date.desc()).all()
-    result = []
-    for s in services:
-        items = json.loads(s.items_json)
-        result.append({
-            "guide_number": s.guide_number, "date": s.date, 
-            "items_count": ", ".join([f"{i['qty']} {i['name']}" for i in items]),
-            "status": s.status
-        })
-    return result
-
-# --- ESTADÍSTICAS ---
+    return [{"guide_number": s.guide_number, "date": s.date, "items_count": ", ".join([f"{i['qty']} {i['name']}" for i in json.loads(s.items_json)]), "status": s.status} for s in services]
 
 @app.get("/api/stats")
 def get_stats(month: int = None, year: int = None, db: Session = Depends(get_db)):
@@ -228,15 +212,9 @@ def get_stats(month: int = None, year: int = None, db: Session = Depends(get_db)
     dq = db.query(models.Delivery)
     if year: dq = dq.filter(extract('year', models.Delivery.date) == year)
     if month: dq = dq.filter(extract('month', models.Delivery.date) == month)
-    
-    return {
-        "users_count": users,
-        "deliveries_count": dq.count(),
-        "laundry_total_count": db.query(models.Laundry).count()
-    }
+    return {"users_count": users, "deliveries_count": dq.count(), "laundry_total_count": db.query(models.Laundry).count()}
 
 # --- CATCH-ALL FRONTEND ---
-
 if os.path.exists("frontend/dist/assets"):
     app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
 
