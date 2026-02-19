@@ -24,6 +24,7 @@ export function LaundryReturn() {
         setSuccess(false);
 
         try {
+            // Ruta relativa corregida para Render
             const res = await axios.get(`/api/laundry/${guideNumber.trim()}/status`);
             setLaundryData(res.data);
         } catch (err) {
@@ -61,6 +62,8 @@ export function LaundryReturn() {
                 items: itemsToReturn
             });
             setSuccess(true);
+            
+            // Refrescar datos tras el éxito
             const res = await axios.get(`/api/laundry/${guideNumber}/status`);
             setLaundryData(res.data);
             setReturnItems({});
