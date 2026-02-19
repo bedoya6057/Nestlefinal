@@ -24,12 +24,14 @@ export function Dashboard() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const resStats = await axios.get('http://localhost:8000/api/stats', {
+                // CORRECCIÓN: Uso de ruta relativa con parámetros de filtro
+                const resStats = await axios.get('/api/stats', {
                     params: { month, year }
                 });
                 setStats(resStats.data);
 
-                const resLaundry = await axios.get('http://localhost:8000/api/laundry');
+                // CORRECCIÓN: Ruta relativa para movimientos de lavandería
+                const resLaundry = await axios.get('/api/laundry');
                 setLaundryServices(resLaundry.data);
             } catch (err) {
                 console.error("Error fetching data:", err);
@@ -47,7 +49,7 @@ export function Dashboard() {
                 <div className="flex gap-2">
                     <select
                         value={month}
-                        onChange={(e) => setMonth(parseInt(e.target.value))}
+                        onChange={(e) => setMonth(parseInt(e.target.value) || "")}
                         className="px-4 py-2 border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     >
                         <option value="">Todos los Meses</option>
@@ -60,7 +62,7 @@ export function Dashboard() {
 
                     <select
                         value={year}
-                        onChange={(e) => setYear(parseInt(e.target.value))}
+                        onChange={(e) => setYear(parseInt(e.target.value) || "")}
                         className="px-4 py-2 border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     >
                         <option value="">Todos los Años</option>
@@ -73,6 +75,7 @@ export function Dashboard() {
                 </div>
             </div>
 
+            {/* Grid de Tarjetas de Estadísticas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Card className="p-6">
                     <div className="flex items-center gap-4">
@@ -97,8 +100,9 @@ export function Dashboard() {
                         </div>
                     </div>
                 </Card>
+
                 <Card className="p-6 opacity-0 hidden md:block">
-                    {/* Spacer to align grid */}
+                    {/* Espaciador para alinear el grid */}
                 </Card>
 
                 <Card className="p-6">
@@ -138,6 +142,7 @@ export function Dashboard() {
                 </Card>
             </div>
 
+            {/* Tabla de Movimientos */}
             <Card className="p-6">
                 <h3 className="text-xl font-bold text-slate-800 mb-4">Últimos Movimientos de Lavandería</h3>
                 <div className="overflow-x-auto">
@@ -154,7 +159,7 @@ export function Dashboard() {
                         <tbody>
                             {laundryServices.length === 0 ? (
                                 <tr>
-                                    <td colSpan="4" className="px-4 py-6 text-center text-slate-400">
+                                    <td colSpan="5" className="px-4 py-6 text-center text-slate-400">
                                         No hay movimientos recientes.
                                     </td>
                                 </tr>
@@ -165,7 +170,7 @@ export function Dashboard() {
                                             {service.guide_number}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {new Date(service.date).toLocaleDateString()} {new Date(service.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(service.date).toLocaleDateString()}
                                         </td>
                                         <td className="px-4 py-3">
                                             {service.items_count}
@@ -174,10 +179,11 @@ export function Dashboard() {
                                             {service.pending_items}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${service.status === 'Completa' ? 'bg-green-100 text-green-700' :
-                                                service.status === 'Incompleta' ? 'bg-red-100 text-red-700' :
-                                                    'bg-blue-100 text-blue-700'
-                                                }`}>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                                service.status === 'Completado' || service.status === 'Completa' ? 'bg-green-100 text-green-700' :
+                                                service.status === 'Parcial' || service.status === 'Incompleta' ? 'bg-orange-100 text-orange-700' :
+                                                'bg-blue-100 text-blue-700'
+                                            }`}>
                                                 {service.status}
                                             </span>
                                         </td>
