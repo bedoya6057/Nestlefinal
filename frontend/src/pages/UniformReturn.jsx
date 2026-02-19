@@ -19,8 +19,9 @@ export function UniformReturn() {
     ];
 
     const searchUser = async (e) => {
-        e.preventDefault();
-        if (!dni.trim()) return;
+        if (e) e.preventDefault();
+        const cleanDni = dni.trim();
+        if (!cleanDni) return;
 
         setLoading(true);
         setError('');
@@ -29,12 +30,12 @@ export function UniformReturn() {
         setSuccess('');
 
         try {
-            // CORRECCIÓN: Ruta relativa para producción
-            const res = await axios.get(`/api/users/${dni.trim()}`);
+            // CORRECCIÓN: Uso de ruta relativa para Render
+            const res = await axios.get(`/api/users/${cleanDni}`);
             setUser(res.data);
             setItems(DEFAULT_ITEMS);
         } catch (err) {
-            setError('Usuario no encontrado o error de conexión');
+            setError('Trabajador no encontrado en el sistema.');
         } finally {
             setLoading(false);
         }
@@ -64,20 +65,22 @@ export function UniformReturn() {
             items: items.map(i => ({ 
                 name: i.name, 
                 qty: parseInt(i.qty) || 0 
-            })).filter(i => i.qty > 0), // Evita enviar cantidades en 0
-            observations: "Devolución regular de uniforme"
+            })).filter(i => i.qty > 0),
+            observations: "Retorno de equipo por cese o renovación"
         };
 
         try {
-            // CORRECCIÓN: Ruta relativa para producción
+            // CORRECCIÓN: Ruta relativa para el POST
             await axios.post('/api/uniform-returns', payload);
-            setSuccess('Devolución registrada correctamente en la base de datos');
+            
+            setSuccess('Registro de devolución guardado exitosamente.');
+            // Limpieza de formulario tras éxito
             setDni('');
             setUser(null);
             setItems([]);
         } catch (err) {
-            console.error(err);
-            setError('Error al registrar la devolución en el servidor');
+            console.error("Error al guardar:", err);
+            setError('Error de servidor: No se pudo registrar la devolución.');
         } finally {
             setLoading(false);
         }
@@ -113,14 +116,14 @@ export function UniformReturn() {
             {user && (
                 <Card className="p-6 space-y-6">
                     <div className="border-b pb-4">
-                        <h3 className="text-lg font-semibold text-slate-700">Datos del Trabajador</h3>
+                        <h3 className="text-lg font-semibold text-slate-700">Ficha del Trabajador</h3>
                         <p className="text-slate-600 font-medium">{user.name} {user.surname}</p>
-                        <p className="text-slate-500 text-sm">{user.dni}</p>
+                        <p className="text-slate-500 text-sm">DNI: {user.dni}</p>
                     </div>
 
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-slate-700">Items a Devolver</h3>
+                            <h3 className="text-lg font-semibold text-slate-700">Equipos a Devolver</h3>
                             <button onClick={addItem} className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1">
                                 <Plus size={16} /> Agregar Item
                             </button>
@@ -139,7 +142,7 @@ export function UniformReturn() {
                                             <select
                                                 value={item.name}
                                                 onChange={(e) => updateItem(index, 'name', e.target.value)}
-                                                className="w-full px-4 py-2 border rounded-lg outline-none"
+                                                className="w-full px-4 py-2 border rounded-lg outline-none bg-white"
                                             >
                                                 {ALLOWED_ITEMS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                             </select>
@@ -169,9 +172,10 @@ export function UniformReturn() {
                         <button
                             onClick={handleSubmit}
                             disabled={loading || items.length === 0}
-                            className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium shadow-sm"
+                            className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium shadow-sm flex items-center gap-2"
                         >
-                            {loading ? 'Registrando...' : 'Registrar Devolución'}
+                            <Save size={20} />
+                            {loading ? 'Guardando...' : 'Registrar Devolución'}
                         </button>
                     </div>
                 </Card>
