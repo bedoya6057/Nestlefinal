@@ -61,7 +61,6 @@ export function Delivery() {
         setUser(null);
         setDeliveryData(null);
         try {
-            // CORRECCIÓN: Ruta relativa para buscar usuario en Render
             const res = await axios.get(`/api/users/${dni}`);
             setUser(res.data);
             setItems(determineDefaultItems(res.data.contract_type));
@@ -80,19 +79,16 @@ export function Delivery() {
         setLoading(true);
         setError(null);
         try {
-            // CORRECCIÓN: Ruta relativa para procesar entrega en Render
+            // Envío de datos al backend con ruta relativa
             const res = await axios.post('/api/deliveries', {
                 dni: user.dni,
-                items: items,
+                items: items.map(i => ({ name: i.name, qty: parseInt(i.qty) || 0 })),
                 date: new Date(deliveryDate).toISOString()
             });
             setDeliveryData(res.data);
         } catch (err) {
             console.error("Delivery Error:", err);
-            const msg = err.response?.data?.detail
-                ? (typeof err.response.data.detail === 'string' ? err.response.data.detail : JSON.stringify(err.response.data.detail))
-                : err.message;
-            setError(`Error al procesar la entrega: ${msg}`);
+            setError("No se pudo procesar la entrega. Verifique la conexión con el servidor.");
         } finally {
             setLoading(false);
         }
@@ -165,14 +161,14 @@ export function Delivery() {
                                         <Input
                                             type="number"
                                             value={item.qty}
-                                            onChange={(e) => handleItemChange(index, 'qty', parseInt(e.target.value) || 0)}
+                                            onChange={(e) => handleItemChange(index, 'qty', e.target.value)}
                                             className="w-20"
                                             min="1"
                                         />
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 px-3"
+                                            className="text-red-500 border-red-200 px-3"
                                             onClick={() => handleRemoveItem(index)}
                                         >
                                             X
@@ -182,7 +178,7 @@ export function Delivery() {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="w-full dashed border-2 border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-500"
+                                    className="w-full dashed border-2 border-slate-200 text-slate-500"
                                     onClick={handleAddItem}
                                 >
                                     + Agregar Item
@@ -209,15 +205,15 @@ export function Delivery() {
                     <Card className="p-6">
                         <h4 className="font-medium mb-4">Items Entregados:</h4>
                         <ul className="space-y-2 mb-6">
-                            {deliveryData.items.map((item, i) => (
+                            {deliveryData.items ? deliveryData.items.map((item, i) => (
                                 <li key={i} className="flex justify-between p-3 bg-slate-50 rounded-lg">
                                     <span>{item.name}</span>
                                     <span className="font-bold">x{item.qty}</span>
                                 </li>
-                            ))}
+                            )) : <li>No se cargaron items</li>}
                         </ul>
 
-                        {/* CORRECCIÓN: URL relativa para el PDF en Render */}
+                        {/* Botón de descarga corregido */}
                         <a
                             href={deliveryData.pdf_url}
                             target="_blank"
@@ -225,8 +221,15 @@ export function Delivery() {
                             className="flex items-center justify-center gap-2 w-full p-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                         >
                             <FileText size={20} />
-                            Descargar Acta PDF
+                            Ver / Descargar Acta PDF
                         </a>
+                        <Button 
+                            onClick={() => window.location.reload()} 
+                            variant="outline" 
+                            className="w-full mt-4"
+                        >
+                            Nueva Entrega
+                        </Button>
                     </Card>
                 </div>
             )}
