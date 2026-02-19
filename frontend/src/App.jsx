@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Truck, FileText, Menu, X, LogOut, Shirt } from 'lucide-react';
+import { LayoutDashboard, Package, Truck, FileText, Menu, X, LogOut, Shirt, UserPlus } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -7,6 +7,7 @@ import { Delivery } from './pages/Delivery';
 import { Laundry } from './pages/Laundry';
 import { Reports } from './pages/Reports';
 import { UniformReturn } from './pages/UniformReturn';
+import { Register } from './pages/Register';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useState } from 'react';
 
@@ -21,6 +22,7 @@ function Sidebar() {
     { path: '/laundry', icon: Truck, label: 'Lavandería' },
     { path: '/uniform-return', icon: Shirt, label: 'Devolución Uniformes' },
     { path: '/reports', icon: FileText, label: 'Reportes' },
+    { path: '/register', icon: UserPlus, label: 'Registrar Usuario' },
   ];
 
   return (
@@ -110,6 +112,7 @@ export default function App() {
                     <Route path="/laundry" element={<Laundry />} />
                     <Route path="/uniform-return" element={<UniformReturn />} />
                     <Route path="/reports" element={<Reports />} />
+                    <Route path="/register" element={<Register />} />
                   </Routes>
                 </main>
               </div>
