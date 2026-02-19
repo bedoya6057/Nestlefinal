@@ -61,7 +61,7 @@ def read_user(dni: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return user
 
-# --- ENTREGAS Y PDF ---
+# --- ENTREGAS Y PDF CORREGIDO ---
 
 def generate_pdf(delivery_id, user, items, delivery_date):
     filename = f"delivery_{delivery_id}.pdf"
@@ -69,16 +69,75 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     c = canvas.Canvas(filepath, pagesize=letter)
     width, height = letter
     
-    logo_path = "frontend/src/assets/logo.png" 
+    # 1. INTENTO DE LOGO
+    # Se busca en la carpeta de origen del build de Render
+    logo_path = os.path.join("frontend", "src", "assets", "logo.png")
     if os.path.exists(logo_path):
         try:
             logo = ImageReader(logo_path)
             c.drawImage(logo, 40, height - 90, width=120, height=50, mask='auto', preserveAspectRatio=True)
         except:
-            c.drawString(40, height - 100, "SODEXO")
+            c.setFont("Helvetica-Bold", 20)
+            c.drawString(40, height - 70, "SODEXO")
     
+    # 2. ENCABEZADO
     c.setFont("Helvetica-Bold", 16)
     c.drawCentredString(width / 2, height - 120, "ACTA DE ENTREGA DE UNIFORMES Y EPP")
+    
+    c.setFont("Helvetica", 10)
+    c.drawRightString(width - 50, height - 60, f"Acta N°: {delivery_id:06d}")
+    c.drawRightString(width - 50, height - 75, f"Fecha: {datetime.now().strftime('%d/%m/%Y')}")
+
+    # 3. DATOS DEL TRABAJADOR
+    y = height - 180
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(50, y, "DATOS DEL TRABAJADOR")
+    c.line(50, y - 5, 200, y - 5)
+    
+    c.setFont("Helvetica", 10)
+    y -= 25
+    c.drawString(50, y, f"Nombres y Apellidos: {user.name} {user.surname}")
+    y -= 15
+    c.drawString(50, y, f"DNI: {user.dni}")
+    y -= 15
+    c.drawString(50, y, f"Tipo de Contrato: {user.contract_type}")
+
+    # 4. TABLA DE ITEMS
+    y -= 40
+    data = [["Descripción del Artículo", "Cantidad"]]
+    for item in items:
+        data.append([item['name'], str(item['qty'])])
+
+    # Estilo de la tabla
+    table = Table(data, colWidths=[350, 100])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.navy),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+
+    # Dibujar tabla
+    w, h = table.wrap(width, height)
+    table.drawOn(c, 50, y - h)
+
+    # 5. FIRMAS
+    y_firma = 150
+    c.setFont("Helvetica", 9)
+    c.drawString(50, y_firma + 60, "Declaro haber recibido conforme los equipos y uniformes detallados.")
+    
+    c.line(70, y_firma, 220, y_firma)
+    c.drawCentredString(145, y_firma - 15, "ENTREGADO POR")
+    
+    c.line(360, y_firma, 510, y_firma)
+    c.drawCentredString(435, y_firma - 15, "RECIBIDO POR (FIRMA)")
+    c.drawCentredString(435, y_firma - 30, f"DNI: {user.dni}")
+
     c.save()
     return filepath
 
@@ -87,21 +146,30 @@ def create_delivery(delivery: schemas.DeliveryCreate, db: Session = Depends(get_
     user = db.query(models.User).filter(models.User.dni == delivery.dni).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
     items_list = [item.dict() for item in delivery.items]
     try:
         new_delivery = models.Delivery(
             dni=delivery.dni,
-            date=delivery.date,
+            date=datetime.now(),
             items_json=json.dumps(items_list),
             pdf_path=""
         )
         db.add(new_delivery)
         db.commit()
         db.refresh(new_delivery)
-        pdf_path = generate_pdf(new_delivery.id, user, items_list, delivery.date)
+        
+        # Generar el PDF con los datos reales
+        pdf_path = generate_pdf(new_delivery.id, user, items_list, datetime.now())
         new_delivery.pdf_path = pdf_path
         db.commit()
-        return {"message": "Delivery created", "delivery_id": new_delivery.id, "pdf_url": f"/api/deliveries/{new_delivery.id}/pdf"}
+        
+        return {
+            "message": "Delivery created", 
+            "delivery_id": new_delivery.id, 
+            "items": items_list,
+            "pdf_url": f"/api/deliveries/{new_delivery.id}/pdf"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -170,13 +238,12 @@ def create_laundry_return(return_data: schemas.LaundryReturnCreate, db: Session 
     new_ret = models.LaundryReturn(guide_number=return_data.guide_number, date=datetime.now(), items_json=json.dumps([i.dict() for i in return_data.items]))
     db.add(new_ret)
     db.commit()
-    # Actualizar estado
     status_list = get_laundry_status(return_data.guide_number, db)
     laundry.status = "Completa" if sum(i['pending'] for i in status_list) <= 0 else "Incompleta"
     db.commit()
     return new_ret
 
-# --- DEVOLUCIÓN DE UNIFORMES (ENDPOINT FALTANTE) ---
+# --- DEVOLUCIÓN DE UNIFORMES ---
 
 @app.post("/api/uniform-returns", response_model=schemas.UniformReturnResponse)
 def create_uniform_return(ret: schemas.UniformReturnCreate, db: Session = Depends(get_db)):
@@ -215,7 +282,6 @@ def get_stats(month: int = None, year: int = None, db: Session = Depends(get_db)
         dq = dq.filter(extract('month', models.Delivery.date) == month)
         lq = lq.filter(extract('month', models.Laundry.date) == month)
     
-    # Conteo de prendas
     p, pa, ch = 0, 0, 0
     for r in lq.all():
         for i in json.loads(r.items_json):
