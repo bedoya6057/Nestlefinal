@@ -3,120 +3,153 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import axios from 'axios';
-import { Truck, CheckCircle, AlertCircle, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { Search, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
 
-export function Laundry() {
+export function LaundryReturn() {
     const [guideNumber, setGuideNumber] = useState('');
+    const [laundryData, setLaundryData] = useState(null); 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
-    const [items, setItems] = useState([
-        { name: 'Chaqueta', qty: 0 },
-        { name: 'Pantalon', qty: 0 },
-        { name: 'Polo', qty: 0 }
-    ]);
+    const [returnItems, setReturnItems] = useState({}); 
 
-    const handleQtyChange = (index, value) => {
-        const newItems = [...items];
-        newItems[index].qty = parseInt(value) || 0;
-        setItems(newItems);
+    const searchGuide = async (e) => {
+        e.preventDefault();
+        if (!guideNumber.trim()) return;
+
+        setLoading(true);
+        setError(null);
+        setLaundryData(null);
+        setReturnItems({});
+        setSuccess(false);
+
+        try {
+            const res = await axios.get(`/api/laundry/${guideNumber.trim()}/status`);
+            setLaundryData(res.data);
+        } catch (err) {
+            setError(err.response?.status === 404 ? 'Guía no encontrada' : 'Error al buscar guía');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const addItem = () => {
-        setItems([...items, { name: '', qty: 0, custom: true }]);
-    };
+    const handleReturnQtyChange = (itemName, value, maxPending) => {
+        let qty = parseInt(value) || 0;
+        if (qty < 0) qty = 0;
+        if (qty > maxPending) qty = maxPending;
 
-    const updateItemName = (index, name) => {
-        const newItems = [...items];
-        newItems[index].name = name;
-        setItems(newItems);
-    };
-
-    const removeItem = (index) => {
-        setItems(items.filter((_, i) => i !== index));
+        setReturnItems(prev => ({
+            ...prev,
+            [itemName]: qty
+        }));
     };
 
     const handleSubmit = async () => {
-        if (!guideNumber.trim()) {
-            setError('Debe ingresar un número de guía.');
-            return;
-        }
+        const itemsToReturn = Object.entries(returnItems)
+            .filter(([_, qty]) => qty > 0)
+            .map(([name, qty]) => ({ name, qty }));
 
-        const itemsToRegister = items.filter(i => i.qty > 0 && i.name.trim() !== '');
-        if (itemsToRegister.length === 0) {
-            setError('Debe registrar al menos una prenda.');
+        if (itemsToReturn.length === 0) {
+            setError('Debe ingresar cantidad a devolver en al menos una prenda.');
             return;
         }
 
         setLoading(true);
-        setError(null);
-        setSuccess(false);
-
         try {
-            await axios.post('/api/laundry', {
+            await axios.post('/api/laundry/return', {
                 guide_number: guideNumber,
-                items: itemsToRegister
+                items: itemsToReturn
             });
             setSuccess(true);
-            setGuideNumber('');
-            setItems([
-                { name: 'Chaqueta', qty: 0 },
-                { name: 'Pantalon', qty: 0 },
-                { name: 'Polo', qty: 0 }
-            ]);
+            const res = await axios.get(`/api/laundry/${guideNumber}/status`);
+            setLaundryData(res.data);
+            setReturnItems({});
         } catch (err) {
-            setError(err.response?.data?.detail || 'Error al registrar servicio');
+            setError('Error al registrar la devolución.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Card className="p-8 space-y-6 max-w-4xl mx-auto">
+        <div className="max-w-3xl mx-auto space-y-6">
             <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
-                <Truck className="text-blue-600" />
-                Envío a Lavandería
+                <RotateCcw className="text-green-600" />
+                Recepción de Lavandería
             </h2>
 
-            <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Número de Guía</label>
-                <Input
-                    placeholder="Ej: 001-000123"
-                    value={guideNumber}
-                    onChange={e => setGuideNumber(e.target.value)}
-                    className="w-full uppercase"
-                />
-            </div>
-
-            <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                    <h4 className="font-medium text-slate-700">Detalle de Prendas</h4>
-                    <Button variant="outline" size="sm" onClick={addItem}>+ Agregar</Button>
-                </div>
-
-                {items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                        <div className="flex-1">
-                            {item.custom ? (
-                                <Input value={item.name} onChange={e => updateItemName(index, e.target.value)} placeholder="Nombre" />
-                            ) : (
-                                <div className="px-3 py-2 bg-slate-50 border rounded-md">{item.name}</div>
-                            )}
-                        </div>
-                        <Input type="number" min="0" value={item.qty} onChange={e => handleQtyChange(index, e.target.value)} className="w-32" />
-                        {item.custom && (
-                            <button onClick={() => removeItem(index)} className="text-red-500 p-2"><Trash2 size={18} /></button>
-                        )}
+            <Card className="p-6">
+                <form onSubmit={searchGuide} className="flex gap-4">
+                    <div className="flex-1">
+                        <Input
+                            placeholder="Ingrese N° Guía de Remisión"
+                            value={guideNumber}
+                            onChange={e => setGuideNumber(e.target.value)}
+                            className="w-full uppercase"
+                        />
                     </div>
-                ))}
-            </div>
+                    <Button type="submit" disabled={loading}>
+                        <Search className="mr-2" size={18} />
+                        {loading ? 'Buscando...' : 'Buscar Guía'}
+                    </Button>
+                </form>
+            </Card>
 
-            {error && <div className="text-red-600 bg-red-50 p-4 rounded-lg">{error}</div>}
-            {success && <div className="text-green-600 bg-green-50 p-4 rounded-lg">Guía registrada exitosamente</div>}
+            {error && (
+                <div className="flex items-center gap-2 text-red-600 bg-red-50 p-4 rounded-xl">
+                    <AlertCircle size={20} />
+                    <span>{error}</span>
+                </div>
+            )}
 
-            <Button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-600">
-                {loading ? 'Registrando...' : 'Registrar Envío'}
-            </Button>
-        </Card>
+            {success && (
+                <div className="flex items-center gap-2 text-green-600 bg-green-50 p-4 rounded-xl">
+                    <CheckCircle size={24} />
+                    <span className="font-medium text-lg">Recepción registrada exitosamente</span>
+                </div>
+            )}
+
+            {laundryData && (
+                <Card className="p-8">
+                    <div className="flex items-start justify-between mb-6 border-b border-slate-100 pb-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-900">Guía N° {guideNumber}</h3>
+                        </div>
+                        <div className={`px-4 py-1 rounded-full text-sm font-bold ${laundryData.every(i => i.pending === 0) ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {laundryData.every(i => i.pending === 0) ? 'COMPLETADO' : 'PENDIENTE'}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {laundryData.map((item, index) => (
+                            <div key={index} className="grid grid-cols-12 items-center p-4 rounded-lg border border-slate-200">
+                                <div className="col-span-6 font-medium text-slate-800">{item.name}</div>
+                                <div className="col-span-3 text-center text-orange-600">Pendiente: {item.pending}</div>
+                                <div className="col-span-3">
+                                    {item.pending > 0 && (
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max={item.pending}
+                                            value={returnItems[item.name] || ''}
+                                            onChange={e => handleReturnQtyChange(item.name, e.target.value, item.pending)}
+                                            className="text-center"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {laundryData.some(i => i.pending > 0) && (
+                        <div className="mt-8 pt-6 border-t border-slate-100">
+                            <Button onClick={handleSubmit} disabled={loading} className="w-full text-lg h-12 bg-green-600 hover:bg-green-700">
+                                {loading ? 'Procesando...' : 'Confirmar Recepción'}
+                            </Button>
+                        </div>
+                    )}
+                </Card>
+            )}
+        </div>
     );
 }
