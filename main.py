@@ -53,6 +53,22 @@ def read_user(dni: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return user
 
+@app.post("/api/users/", response_model=schemas.User)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.dni == user.dni).first()
+    if db_user:
+        print(f"Error: DNI {user.dni} already registered", file=sys.stderr)
+        raise HTTPException(status_code=400, detail="DNI already registered")
+    try:
+        new_user = models.User(**user.dict())
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    except Exception as e:
+        print(f"Database Error creating user: {e}", file=sys.stderr)
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- ENTREGAS Y PDF ---
 def generate_pdf(delivery_id, user, items, delivery_date):
     filename = f"delivery_{delivery_id}.pdf"
