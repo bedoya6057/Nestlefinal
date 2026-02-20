@@ -76,7 +76,10 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     c = canvas.Canvas(filepath, pagesize=letter)
     width, height = letter
     
-    logo_path = os.path.join(os.path.dirname(__file__), "frontend", "public", "logo.png")
+    logo_path = os.path.join(os.path.dirname(__file__), "frontend", "dist", "logo.png")
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(os.path.dirname(__file__), "frontend", "public", "logo.png")
+        
     if os.path.exists(logo_path):
         try:
             c.drawImage(logo_path, 40, height - 90, width=120, preserveAspectRatio=True, mask='auto')
