@@ -135,10 +135,11 @@ export function Dashboard() {
                         <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold">
                             <tr>
                                 <th className="px-4 py-3">Guía</th>
-                                <th className="px-4 py-3">Fecha</th>
+                                <th className="px-4 py-3">F. Envío</th>
                                 <th className="px-4 py-3">Resumen</th>
                                 <th className="px-4 py-3">Pendiente Real</th>
                                 <th className="px-4 py-3">Estado</th>
+                                <th className="px-4 py-3">F. Retorno</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -164,6 +165,9 @@ export function Dashboard() {
                                                 }`}>
                                                 {service.status}
                                             </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-500 font-medium">
+                                            {service.return_date ? new Date(service.return_date).toLocaleDateString() : '-'}
                                         </td>
                                     </tr>
                                 ))

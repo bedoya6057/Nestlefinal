@@ -86,22 +86,47 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     c.setFont("Helvetica-Bold", 16)
     c.drawCentredString(width / 2, height - 100, "ACTA DE ENTREGA DE UNIFORMES Y EPP")
     
-    y = height - 150
+    y = height - 140
     c.setFont("Helvetica", 11)
-    c.drawString(50, y, f"Trabajador: {user.name} {user.surname}")
-    c.drawString(50, y - 15, f"DNI: {user.dni}")
+    c.drawString(50, y, "Conste por el presente documento que se hace entrega de los siguientes uniformes y/o")
+    c.drawString(50, y - 15, "EPP al trabajador, quien se compromete a su uso adecuado e intransferible.")
     
+    y -= 45
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(50, y, f"Trabajador: {user.name} {user.surname}")
+    c.drawString(380, y, f"DNI: {user.dni}")
+    y -= 20
+    c.drawString(50, y, f"Fecha de Entrega: {delivery_date.strftime('%d/%m/%Y %H:%M')}")
+    
+    y -= 30
     data = [["Descripción", "Cantidad"]]
     for item in items:
         data.append([item['name'], str(item['qty'])])
 
     table = Table(data, colWidths=[350, 80])
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#f8fafc")),
+        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor("#cbd5e1")),
     ]))
     w, h = table.wrap(width, height)
-    table.drawOn(c, 50, y - 100 - h)
+    table.drawOn(c, 50, y - h)
+    
+    # Signature
+    y_sig = y - h - 100
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(1)
+    c.line(200, y_sig, 400, y_sig)
+    
+    c.setFont("Helvetica-Bold", 11)
+    c.drawCentredString(width / 2, y_sig - 20, "Firma del Trabajador")
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(width / 2, y_sig - 35, f"DNI: {user.dni}")
+    
     c.save()
     return filepath
 
