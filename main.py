@@ -82,6 +82,10 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     logo_path = os.path.join(os.path.dirname(__file__), "frontend", "dist", "logo.png")
     if not os.path.exists(logo_path):
         logo_path = os.path.join(os.path.dirname(__file__), "frontend", "public", "logo.png")
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(os.getcwd(), "frontend", "dist", "logo.png")
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(os.getcwd(), "frontend", "public", "logo.png")
         
     if os.path.exists(logo_path):
         try:
@@ -90,7 +94,7 @@ def generate_pdf(delivery_id, user, items, delivery_date):
             background = Image.new("RGB", img.size, (255, 255, 255))
             background.paste(img, mask=img.split()[3]) 
             img_reader = ImageReader(background)
-            c.drawImage(img_reader, 40, height - 90, width=150, preserveAspectRatio=True)
+            c.drawImage(img_reader, 40, height - 90, width=140, height=45, preserveAspectRatio=True)
         except Exception as e:
             print("Could not load logo to PDF:", e, file=sys.stderr)
             
