@@ -16,7 +16,14 @@ from reportlab.platypus import Table, TableStyle
 from reportlab.lib.utils import ImageReader
 
 # Configuración de directorios
-PDF_DIR = "deliveries_pdf"
+import sys
+
+# Configuración de directorios
+if sys.platform == "linux":
+    PDF_DIR = "/tmp/deliveries_pdf"
+else:
+    PDF_DIR = "deliveries_pdf"
+
 os.makedirs(PDF_DIR, exist_ok=True)
 
 models.Base.metadata.create_all(bind=engine)
