@@ -138,7 +138,7 @@ def create_laundry_return(ret: schemas.LaundryReturnCreate, db: Session = Depend
     db.commit()
     # Actualizar estado
     status_list = get_laundry_status(ret.guide_number, db)
-    laundry.status = "Completa" if sum(i['pending'] for i in status_list) <= 0 else "Incompleta"
+    laundry.status = "Completo" if sum(i['pending'] for i in status_list) <= 0 else "Incompleta"
     db.commit()
     return {"message": "ok"}
 
@@ -180,7 +180,7 @@ def get_stats(month: int = None, year: int = None, db: Session = Depends(get_db)
         "users_count": db.query(models.User).count(),
         "deliveries_count": db.query(models.Delivery).count(),
         "laundry_polos_count": p, "laundry_pantalones_count": pa, "laundry_chaquetas_count": ch,
-        "laundry_active_count": laundry_q.filter(models.Laundry.status != "Completa").count()
+        "laundry_active_count": laundry_q.filter(models.Laundry.status != "Completo").count()
     }
 
 @app.get("/api/reports/laundry")
@@ -195,11 +195,23 @@ def get_laundry_report(guide_number: str = None, month: int = None, year: int = 
     for s in services:
         returns = db.query(models.LaundryReturn).filter(models.LaundryReturn.guide_number == s.guide_number).all()
         ret_map = {}
+        last_return_date = None
         for r in returns:
+            if not last_return_date or r.date > last_return_date:
+                last_return_date = r.date
             for i in json.loads(r.items_json): ret_map[i['name']] = ret_map.get(i['name'], 0) + i['qty']
+        
         pend = [f"{i['qty'] - ret_map.get(i['name'], 0)} {i['name']}" for i in json.loads(s.items_json) if (i['qty'] - ret_map.get(i['name'], 0)) > 0]
+        
+        status = s.status
+        if status == "Completa":
+            status = "Completo"
+
         res.append({
-            "guide_number": s.guide_number, "date": s.date, "status": s.status,
+            "guide_number": s.guide_number, 
+            "date": s.date, 
+            "return_date": last_return_date,
+            "status": status,
             "items_count": ", ".join([f"{i['qty']} {i['name']}" for i in json.loads(s.items_json)]),
             "pending_items": ", ".join(pend) if pend else "Ninguna"
         })
