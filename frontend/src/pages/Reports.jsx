@@ -24,6 +24,7 @@ export function Reports() {
             <div className="flex gap-4 border-b">
                 <button onClick={() => setActiveTab('deliveries')} className={`pb-2 ${activeTab === 'deliveries' ? 'border-b-2 border-blue-600' : ''}`}>Entregas</button>
                 <button onClick={() => setActiveTab('laundry')} className={`pb-2 ${activeTab === 'laundry' ? 'border-b-2 border-blue-600' : ''}`}>Lavandería</button>
+                <button onClick={() => setActiveTab('uniform-return')} className={`pb-2 ${activeTab === 'uniform-return' ? 'border-b-2 border-blue-600' : ''}`}>Devolución Uniformes</button>
             </div>
             <Card className="p-4">
                 <table className="w-full text-sm">
@@ -33,9 +34,11 @@ export function Reports() {
                             {activeTab === 'deliveries' && <th className="p-3 text-left">Fecha</th>}
                             {activeTab === 'laundry' && <th className="p-3 text-left">F. Envío</th>}
                             {activeTab === 'laundry' && <th className="p-3 text-left">F. Retorno</th>}
+                            {activeTab === 'uniform-return' && <th className="p-3 text-left">Fecha</th>}
                             <th className="p-3 text-left">Estado/DNI</th>
                             <th className="p-3 text-left">Items</th>
                             {activeTab === 'laundry' && <th className="p-3 text-left text-red-600">Faltante</th>}
+                            {activeTab === 'uniform-return' && <th className="p-3 text-left">Observaciones</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -50,6 +53,11 @@ export function Reports() {
                                 {activeTab === 'laundry' && (
                                     <td className="p-3 text-slate-600">
                                         {row.date ? new Date(row.date).toLocaleDateString() : '-'}
+                                    </td>
+                                )}
+                                {activeTab === 'uniform-return' && (
+                                    <td className="p-3 text-slate-600">
+                                        {row.date ? `${new Date(row.date).toLocaleDateString()} ${new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '-'}
                                     </td>
                                 )}
                                 {activeTab === 'laundry' && (
@@ -71,6 +79,7 @@ export function Reports() {
                                 </td>
                                 <td className="p-3">{row.items || row.items_count}</td>
                                 {activeTab === 'laundry' && <td className="p-3 font-bold text-red-600">{row.pending_items}</td>}
+                                {activeTab === 'uniform-return' && <td className="p-3 text-slate-600">{row.observations || '-'}</td>}
                             </tr>
                         ))}
                     </tbody>
