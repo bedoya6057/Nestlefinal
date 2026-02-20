@@ -99,9 +99,9 @@ def generate_pdf(delivery_id, user, items, delivery_date):
             print("Could not load logo to PDF:", e, file=sys.stderr)
             
     c.setFont("Helvetica-Bold", 16)
-    c.drawCentredString(width / 2, height - 100, "ACTA DE ENTREGA DE UNIFORMES Y EPP")
+    c.drawCentredString(width / 2, height - 130, "ACTA DE ENTREGA DE UNIFORMES Y EPP")
     
-    y = height - 140
+    y = height - 170
     c.setFont("Helvetica", 11)
     c.drawString(50, y, "Conste por el presente documento que se hace entrega de los siguientes uniformes y/o")
     c.drawString(50, y - 15, "EPP al trabajador, quien se compromete a su uso adecuado e intransferible.")
