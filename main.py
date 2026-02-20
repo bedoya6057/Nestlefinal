@@ -225,6 +225,24 @@ def get_delivery_report(month: int = None, year: int = None, db: Session = Depen
         })
     return res
 
+@app.post("/api/uniform-returns")
+def create_uniform_return(ret: schemas.UniformReturnCreate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.dni == ret.dni).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    items_list = [item.dict() for item in ret.items]
+    new_return = models.UniformReturn(
+        dni=ret.dni,
+        date=datetime.now(),
+        items_json=json.dumps(items_list),
+        observations=ret.observations
+    )
+    db.add(new_return)
+    db.commit()
+    db.refresh(new_return)
+    return {"message": "Devolución registrada exitosamente", "id": new_return.id}
+
 @app.get("/api/uniform-returns/report")
 def get_uniform_return_report(db: Session = Depends(get_db)):
     q = db.query(models.UniformReturn).order_by(models.UniformReturn.date.desc()).all()
