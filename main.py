@@ -184,8 +184,13 @@ def get_stats(month: int = None, year: int = None, db: Session = Depends(get_db)
     }
 
 @app.get("/api/reports/laundry")
-def get_laundry_report(db: Session = Depends(get_db)):
-    services = db.query(models.Laundry).order_by(models.Laundry.date.desc()).all()
+def get_laundry_report(guide_number: str = None, month: int = None, year: int = None, db: Session = Depends(get_db)):
+    q = db.query(models.Laundry)
+    if guide_number: q = q.filter(models.Laundry.guide_number == guide_number)
+    if month: q = q.filter(extract('month', models.Laundry.date) == month)
+    if year: q = q.filter(extract('year', models.Laundry.date) == year)
+    
+    services = q.order_by(models.Laundry.date.desc()).all()
     res = []
     for s in services:
         returns = db.query(models.LaundryReturn).filter(models.LaundryReturn.guide_number == s.guide_number).all()
@@ -197,6 +202,44 @@ def get_laundry_report(db: Session = Depends(get_db)):
             "guide_number": s.guide_number, "date": s.date, "status": s.status,
             "items_count": ", ".join([f"{i['qty']} {i['name']}" for i in json.loads(s.items_json)]),
             "pending_items": ", ".join(pend) if pend else "Ninguna"
+        })
+    return res
+
+@app.get("/api/delivery/report")
+def get_delivery_report(month: int = None, year: int = None, db: Session = Depends(get_db)):
+    q = db.query(models.Delivery)
+    if month: q = q.filter(extract('month', models.Delivery.date) == month)
+    if year: q = q.filter(extract('year', models.Delivery.date) == year)
+    
+    res = []
+    for d in q.order_by(models.Delivery.date.desc()).all():
+        user = db.query(models.User).filter(models.User.dni == d.dni).first()
+        items = json.loads(d.items_json)
+        items_str = ", ".join([f"{i['qty']} {i['name']}" for i in items])
+        res.append({
+            "id": d.id,
+            "user": f"{user.name} {user.surname}" if user else "Desconocido",
+            "dni": d.dni,
+            "date": d.date,
+            "items": items_str
+        })
+    return res
+
+@app.get("/api/uniform-returns/report")
+def get_uniform_return_report(db: Session = Depends(get_db)):
+    q = db.query(models.UniformReturn).order_by(models.UniformReturn.date.desc()).all()
+    res = []
+    for r in q:
+        user = db.query(models.User).filter(models.User.dni == r.dni).first()
+        items = json.loads(r.items_json)
+        items_str = ", ".join([f"{i['qty']} {i['name']}" for i in items])
+        res.append({
+            "id": r.id,
+            "user": f"{user.name} {user.surname}" if user else "Desconocido",
+            "dni": r.dni,
+            "date": r.date,
+            "items": items_str,
+            "observations": r.observations
         })
     return res
 
