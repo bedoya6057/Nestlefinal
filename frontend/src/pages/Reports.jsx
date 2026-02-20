@@ -30,6 +30,7 @@ export function Reports() {
                     <thead>
                         <tr className="bg-slate-50">
                             <th className="p-3 text-left">Referencia</th>
+                            {activeTab === 'deliveries' && <th className="p-3 text-left">Fecha</th>}
                             {activeTab === 'laundry' && <th className="p-3 text-left">F. Envío</th>}
                             {activeTab === 'laundry' && <th className="p-3 text-left">F. Retorno</th>}
                             <th className="p-3 text-left">Estado/DNI</th>
@@ -41,6 +42,11 @@ export function Reports() {
                         {reportData.map((row, i) => (
                             <tr key={i} className="border-b hover:bg-slate-50">
                                 <td className="p-3 font-medium text-slate-800">{row.user || row.guide_number}</td>
+                                {activeTab === 'deliveries' && (
+                                    <td className="p-3 text-slate-600">
+                                        {row.date ? new Date(row.date).toLocaleDateString() : '-'}
+                                    </td>
+                                )}
                                 {activeTab === 'laundry' && (
                                     <td className="p-3 text-slate-600">
                                         {row.date ? new Date(row.date).toLocaleDateString() : '-'}
@@ -54,8 +60,8 @@ export function Reports() {
                                 <td className="p-3">
                                     {activeTab === 'laundry' ? (
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${row.status === 'Completo' ? 'bg-green-100 text-green-700' :
-                                                row.status === 'Incompleta' ? 'bg-red-100 text-red-700' :
-                                                    'bg-orange-100 text-orange-700'
+                                            row.status === 'Incompleta' ? 'bg-red-100 text-red-700' :
+                                                'bg-orange-100 text-orange-700'
                                             }`}>
                                             {row.status}
                                         </span>
