@@ -142,6 +142,25 @@ def create_laundry_return(ret: schemas.LaundryReturnCreate, db: Session = Depend
     db.commit()
     return {"message": "ok"}
 
+@app.post("/api/laundry")
+def create_laundry(laundry: schemas.LaundryCreate, db: Session = Depends(get_db)):
+    # Verificar si ya existe
+    existing = db.query(models.Laundry).filter(models.Laundry.guide_number == laundry.guide_number).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Número de guía ya registrado")
+    
+    items_list = [item.dict() for item in laundry.items]
+    new_laundry = models.Laundry(
+        guide_number=laundry.guide_number,
+        date=datetime.now(),
+        items_json=json.dumps(items_list),
+        status="Pendiente"
+    )
+    db.add(new_laundry)
+    db.commit()
+    db.refresh(new_laundry)
+    return new_laundry
+
 # --- DASHBOARD & REPORTES ---
 @app.get("/api/stats")
 def get_stats(month: int = None, year: int = None, db: Session = Depends(get_db)):
