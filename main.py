@@ -76,6 +76,13 @@ def generate_pdf(delivery_id, user, items, delivery_date):
     c = canvas.Canvas(filepath, pagesize=letter)
     width, height = letter
     
+    logo_path = os.path.join(os.path.dirname(__file__), "frontend", "public", "logo.png")
+    if os.path.exists(logo_path):
+        try:
+            c.drawImage(logo_path, 40, height - 90, width=120, preserveAspectRatio=True, mask='auto')
+        except Exception as e:
+            print("Could not load logo to PDF:", e, file=sys.stderr)
+            
     c.setFont("Helvetica-Bold", 16)
     c.drawCentredString(width / 2, height - 100, "ACTA DE ENTREGA DE UNIFORMES Y EPP")
     
@@ -276,6 +283,17 @@ def get_uniform_return_report(db: Session = Depends(get_db)):
 # CATCH-ALL
 if os.path.exists("frontend/dist/assets"):
     app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
+
+@app.get("/logo.png")
+async def get_logo():
+    logo_path = os.path.join("frontend", "dist", "logo.png")
+    if os.path.exists(logo_path):
+        return FileResponse(logo_path)
+    public_logo = os.path.join("frontend", "public", "logo.png")
+    if os.path.exists(public_logo):
+        return FileResponse(public_logo)
+    raise HTTPException(status_code=404)
+
 @app.get("/{full_path:path}")
 async def catch_all(full_path: str):
     if full_path.startswith("api"): raise HTTPException(status_code=404)

@@ -26,15 +26,15 @@ export function Dashboard() {
             try {
                 // Obtener Estadísticas filtradas
                 const resStats = await axios.get('/api/stats', {
-                    params: { 
-                        month: month === "" ? null : month, 
-                        year: year === "" ? null : year 
+                    params: {
+                        month: month === "" ? null : month,
+                        year: year === "" ? null : year
                     }
                 });
                 setStats(resStats.data);
 
                 // Obtener últimos movimientos (Lista detallada con pendientes)
-                const resLaundry = await axios.get('/api/laundry');
+                const resLaundry = await axios.get('/api/reports/laundry');
                 setLaundryServices(resLaundry.data);
             } catch (err) {
                 console.error("Error al cargar datos del dashboard:", err);
@@ -77,51 +77,51 @@ export function Dashboard() {
 
             {/* Tarjetas Principales */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard 
-                    icon={<TrendingUp />} 
-                    label="Total Lavandería" 
-                    value={stats.laundry_total_count} 
-                    color="bg-indigo-100 text-indigo-600" 
+                <StatCard
+                    icon={<TrendingUp />}
+                    label="Total Lavandería"
+                    value={stats.laundry_total_count}
+                    color="bg-indigo-100 text-indigo-600"
                 />
-                <StatCard 
-                    icon={<RefreshCw />} 
-                    label="Guías Activas" 
-                    value={stats.laundry_active_count} 
-                    color="bg-purple-100 text-purple-600" 
+                <StatCard
+                    icon={<RefreshCw />}
+                    label="Guías Activas"
+                    value={stats.laundry_active_count}
+                    color="bg-purple-100 text-purple-600"
                 />
-                <StatCard 
-                    icon={<Users />} 
-                    label="Total Trabajadores" 
-                    value={stats.users_count} 
-                    color="bg-blue-100 text-blue-600" 
+                <StatCard
+                    icon={<Users />}
+                    label="Total Trabajadores"
+                    value={stats.users_count}
+                    color="bg-blue-100 text-blue-600"
                 />
-                <StatCard 
-                    icon={<Package />} 
-                    label="Total Entregas" 
-                    value={stats.deliveries_count} 
-                    color="bg-emerald-100 text-emerald-600" 
+                <StatCard
+                    icon={<Package />}
+                    label="Total Entregas"
+                    value={stats.deliveries_count}
+                    color="bg-emerald-100 text-emerald-600"
                 />
             </div>
 
             {/* Inventario en Lavandería */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard 
-                    icon={<Shirt />} 
-                    label="Polos en Lavado" 
-                    value={stats.laundry_polos_count} 
-                    color="bg-blue-50 text-blue-500" 
+                <StatCard
+                    icon={<Shirt />}
+                    label="Polos en Lavado"
+                    value={stats.laundry_polos_count}
+                    color="bg-blue-50 text-blue-500"
                 />
-                <StatCard 
-                    icon={<Columns />} 
-                    label="Pantalones en Lavado" 
-                    value={stats.laundry_pantalones_count} 
-                    color="bg-slate-50 text-slate-500" 
+                <StatCard
+                    icon={<Columns />}
+                    label="Pantalones en Lavado"
+                    value={stats.laundry_pantalones_count}
+                    color="bg-slate-50 text-slate-500"
                 />
-                <StatCard 
-                    icon={<Briefcase />} 
-                    label="Chaquetas en Lavado" 
-                    value={stats.laundry_chaquetas_count} 
-                    color="bg-emerald-50 text-emerald-500" 
+                <StatCard
+                    icon={<Briefcase />}
+                    label="Chaquetas en Lavado"
+                    value={stats.laundry_chaquetas_count}
+                    color="bg-emerald-50 text-emerald-500"
                 />
             </div>
 
@@ -160,9 +160,8 @@ export function Dashboard() {
                                             {service.pending_items}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                                                service.status === 'Completa' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                                            }`}>
+                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${service.status === 'Completo' || service.status === 'Completa' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                }`}>
                                                 {service.status}
                                             </span>
                                         </td>
